@@ -1,19 +1,19 @@
 :root {
-  --bg: #f6f5fb;
+  --bg: #fdf3f8;
   --surface: #ffffff;
-  --surface-2: #f1eff8;
-  --border: #e2def0;
-  --text: #1d1a2b;
-  --muted: #6b6780;
-  --primary: #6d28d9;
-  --primary-hover: #5b21b6;
+  --surface-2: #fce7f3;
+  --border: #f5cfe3;
+  --text: #2a1020;
+  --muted: #7d5f71;
+  --primary: #e6177f;
+  --primary-hover: #c20f68;
   --primary-contrast: #ffffff;
   --danger: #dc2626;
   --ok: #15803d;
-  --topbar: #1e1036;
-  --topbar-text: #efeaff;
+  --topbar: #e6177f;
+  --topbar-text: #fff5fa;
   --radius: 10px;
-  --shadow: 0 1px 2px rgb(20 10 40 / 6%), 0 2px 8px rgb(20 10 40 / 5%);
+  --shadow: 0 1px 2px rgb(80 10 45 / 7%), 0 2px 8px rgb(80 10 45 / 6%);
   color-scheme: light;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
@@ -22,15 +22,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121019;
-    --surface: #1b1826;
-    --surface-2: #242033;
-    --border: #332d47;
-    --text: #ece9f5;
-    --muted: #a39db8;
-    --primary: #8b5cf6;
-    --primary-hover: #7c3aed;
-    --topbar: #0c0913;
+    --bg: #170d13;
+    --surface: #22131d;
+    --surface-2: #2e1a27;
+    --border: #4a2a3e;
+    --text: #fbeaf3;
+    --muted: #c49db4;
+    --primary: #ec1c84;
+    --primary-hover: #d1146f;
+    --topbar: #a30d57;
     --shadow: none;
     color-scheme: dark;
   }
@@ -370,7 +370,7 @@ label.checkbox {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: radial-gradient(circle at 30% 20%, #3b1d6e, var(--topbar) 60%);
+  background: radial-gradient(circle at 30% 20%, #ff6eb4, #b80d60 65%);
 }
 .login-card {
   width: 100%;
@@ -508,7 +508,7 @@ label.checkbox {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(10 5 20 / 55%);
+  background: rgb(40 5 25 / 55%);
   display: grid;
   place-items: center;
   padding: 1rem;
