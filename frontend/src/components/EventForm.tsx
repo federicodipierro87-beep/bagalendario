@@ -36,7 +36,10 @@ export function EventForm({ event, defaultDate, onSaved, onCancel }: Props) {
   const venues = useAsync(() => api.get<{ venues: Venue[] }>('/venues').then((r) => r.venues));
   // Suggerimenti: i locali attivi più quello attuale della serata.
   const venueOptions = (venues.data ?? []).filter((v) => v.attivo || v.id === event?.venueId);
-  const currentVenueName = event?.venue?.nome ?? venues.data?.find((v) => v.id === event?.venueId)?.nome ?? '';
+  // Predefinito: il locale della serata o, per una nuova serata, il primo attivo.
+  const currentVenueName = event
+    ? (event.venue?.nome ?? venues.data?.find((v) => v.id === event.venueId)?.nome ?? '')
+    : (venueOptions[0]?.nome ?? '');
   const venueName = (venueText ?? currentVenueName).trim();
   const matchedVenue = venueName
     ? venues.data?.find((v) => v.nome.toLocaleLowerCase('it') === venueName.toLocaleLowerCase('it'))
