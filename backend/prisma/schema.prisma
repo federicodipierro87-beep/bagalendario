@@ -1,0 +1,140 @@
+// Bagalendario — modello dati.
+// Tutti i DateTime sono salvati in UTC; la visualizzazione avviene in Europe/Rome.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  ARTIST
+}
+
+enum ArtistType {
+  DJ
+  BAND
+}
+
+enum EventStatus {
+  BOZZA
+  PUBBLICATO
+  ANNULLATO
+}
+
+enum PerformanceStatus {
+  CONFERMATO
+  RIFIUTATO
+  ANNULLATO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  nome         String
+  ruolo        Role     @default(STAFF)
+  artistId     String?  @unique
+  artist       Artist?  @relation(fields: [artistId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Artist {
+  id             String         @id @default(cuid())
+  nomeArte       String
+  tipo           ArtistType     @default(DJ)
+  email          String?
+  telefono       String?
+  genereMusicale String?
+  note           String?
+  attivo         Boolean        @default(true)
+  icalToken      String         @unique @default(cuid())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  user           User?
+  bandProfile    BandProfile?
+  performances   Performance[]
+  availabilities Availability[]
+
+  @@index([tipo, attivo])
+}
+
+// Dati specifici delle band (non ancora usati in UI).
+model BandProfile {
+  id             String  @id @default(cuid())
+  artistId       String  @unique
+  artist         Artist  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  numeroMembri   Int?
+  backline       String?
+  technicalRider Json?
+}
+
+// Locale in cui si svolgono le serate (scelto quando si registra la serata).
+model Venue {
+  id           String        @id @default(cuid())
+  nome         String        @unique
+  indirizzo    String?
+  attivo       Boolean       @default(true)
+  events       Event[]
+  performances Performance[]
+}
+
+model Event {
+  id           String        @id @default(cuid())
+  titolo       String? // facoltativo: in UI la serata è identificata da DJ e locale
+  // Data "di calendario" della serata in Europe/Rome (una serata 23:00–05:00 appartiene al giorno di inizio).
+  data         DateTime      @db.Date
+  inizio       DateTime
+  fine         DateTime
+  stato        EventStatus   @default(PUBBLICATO)
+  note         String?
+  venueId      String
+  venue        Venue         @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  performances Performance[]
+
+  @@index([data])
+  @@index([venueId, inizio])
+}
+
+// Slot di un artista durante una serata.
+// venueId è sempre uguale al locale della serata (copiato dal backend) per i controlli di sovrapposizione.
+// Il vincolo di non sovrapposizione per artista è definito via SQL nella migrazione iniziale.
+model Performance {
+  id        String            @id @default(cuid())
+  eventId   String
+  event     Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  artistId  String
+  artist    Artist            @relation(fields: [artistId], references: [id], onDelete: Restrict)
+  venueId   String
+  venue     Venue             @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  inizio    DateTime
+  fine      DateTime
+  stato     PerformanceStatus @default(CONFERMATO)
+  compenso  Decimal?          @db.Decimal(10, 2)
+  note      String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([artistId, inizio])
+  @@index([venueId, inizio])
+  @@index([eventId])
+}
+
+model Availability {
+  id          String   @id @default(cuid())
+  artistId    String
+  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  data        DateTime @db.Date
+  disponibile Boolean
+  note        String?
+
+  @@unique([artistId, data])
+}

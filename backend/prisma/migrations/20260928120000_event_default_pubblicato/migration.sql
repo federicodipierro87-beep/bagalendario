@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Event" ALTER COLUMN "stato" SET DEFAULT 'PUBBLICATO';
+
