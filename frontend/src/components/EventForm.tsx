@@ -28,15 +28,20 @@ export function EventForm({ event, defaultDate, onSaved, onCancel }: Props) {
   const [stato, setStato] = useState<EventStatus>(event?.stato ?? 'PUBBLICATO');
   const [note, setNote] = useState(event?.note ?? '');
   const [lineup, setLineup] = useState<LineupValue>({ artistIds: [] });
-  const [venueId, setVenueId] = useState(event?.venueId ?? '');
+  // Testo libero: se corrisponde a un locale esistente si usa quello, altrimenti ne viene creato uno nuovo.
+  const [venueText, setVenueText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const venues = useAsync(() => api.get<{ venues: Venue[] }>('/venues').then((r) => r.venues));
-  // Locali selezionabili: quelli attivi più quello attuale della serata.
+  // Suggerimenti: i locali attivi più quello attuale della serata.
   const venueOptions = (venues.data ?? []).filter((v) => v.attivo || v.id === event?.venueId);
-  // Predefinito: il locale della serata o il primo attivo.
-  const selectedVenueId = venueId || venueOptions[0]?.id || '';
+  const currentVenueName = event?.venue?.nome ?? venues.data?.find((v) => v.id === event?.venueId)?.nome ?? '';
+  const venueName = (venueText ?? currentVenueName).trim();
+  const matchedVenue = venueName
+    ? venues.data?.find((v) => v.nome.toLocaleLowerCase('it') === venueName.toLocaleLowerCase('it'))
+    : undefined;
+  const venueChanged = !!event && !!venueName && matchedVenue?.id !== event.venueId;
 
   const inizio = data && oraInizio ? romeToIso(data, oraInizio) : null;
   const fine = inizio && oraFine ? romeToIso(data, oraFine, inizio) : null;
@@ -47,7 +52,8 @@ export function EventForm({ event, defaultDate, onSaved, onCancel }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const body = { venueId: selectedVenueId, inizio, fine, stato, note: note || null };
+      const venue = matchedVenue ? { venueId: matchedVenue.id } : { venueNome: venueName };
+      const body = { ...venue, inizio, fine, stato, note: note || null };
       const r = event
         ? await api.patch<{ event: EventItem }>(`/events/${event.id}`, body)
         : await api.post<{ event: EventItem }>('/events', { ...body, slots: splitLineup(lineup, inizio, fine) });
@@ -63,19 +69,32 @@ export function EventForm({ event, defaultDate, onSaved, onCancel }: Props) {
     <form className="form" onSubmit={onSubmit}>
       <label>
         Locale
-        <select value={selectedVenueId} onChange={(e) => setVenueId(e.target.value)} required disabled={!venues.data}>
-          {!venues.data && <option value="">Caricamento…</option>}
-          {venues.data && venueOptions.length === 0 && <option value="">Nessun locale: aggiungilo dalla pagina Locali</option>}
+        <input
+          list="event-form-venues"
+          value={venueText ?? currentVenueName}
+          onChange={(e) => setVenueText(e.target.value)}
+          placeholder={venues.data ? 'Scegli dalla lista o scrivi un nuovo locale' : 'Caricamento…'}
+          maxLength={150}
+          autoComplete="off"
+          required
+          disabled={!venues.data}
+        />
+        <datalist id="event-form-venues">
           {venueOptions.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.nome}
-              {v.indirizzo ? ` — ${v.indirizzo}` : ''}
+            <option key={v.id} value={v.nome}>
+              {v.indirizzo ?? undefined}
             </option>
           ))}
-        </select>
+        </datalist>
       </label>
       {venues.error && <div className="alert alert-error">{venues.error}</div>}
-      {event && selectedVenueId !== event.venueId && (
+      {venueName && !matchedVenue && venues.data && (
+        <div className="hint">Nuovo locale: «{venueName}» verrà aggiunto all'elenco dei locali.</div>
+      )}
+      {matchedVenue && !matchedVenue.attivo && matchedVenue.id !== event?.venueId && (
+        <div className="alert alert-error">Il locale {matchedVenue.nome} è disattivato: riattivalo dalla pagina Locali.</div>
+      )}
+      {venueChanged && (
         <div className="hint">Cambiando locale, anche gli slot della serata verranno spostati nel nuovo locale.</div>
       )}
       {!event && <LineupPicker value={lineup} onChange={setLineup} inizio={inizio} fine={fine} date={data || null} />}
@@ -116,7 +135,7 @@ export function EventForm({ event, defaultDate, onSaved, onCancel }: Props) {
         <button type="button" className="btn btn-ghost" onClick={onCancel}>
           Annulla
         </button>
-        <button className="btn btn-primary" disabled={busy || !selectedVenueId}>
+        <button className="btn btn-primary" disabled={busy || !venueName}>
           {event ? 'Salva' : 'Crea serata'}
         </button>
       </div>
