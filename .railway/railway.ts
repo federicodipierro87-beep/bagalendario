@@ -23,9 +23,9 @@ export default defineRailway(() => {
       JWT_SECRET: preserve(),
       CORS_ORIGIN: "https://bagalendario.netlify.app",
       PUBLIC_API_URL: "https://${{RAILWAY_PUBLIC_DOMAIN}}",
-      ADMIN_EMAIL: "federico.dipierro87@gmail.com",
+      ADMIN_EMAIL: "alex_bxxx83@yahoo.it",
       ADMIN_PASSWORD: preserve(),
-      ADMIN_NOME: "Federico",
+      ADMIN_NOME: "Alex",
     },
   });
 
