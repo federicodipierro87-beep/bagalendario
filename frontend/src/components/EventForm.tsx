@@ -100,7 +100,7 @@ export function EventForm({ event, defaultDate, onSaved, onCancel }: Props) {
       {venueChanged && (
         <div className="hint">Cambiando locale, anche gli slot della serata verranno spostati nel nuovo locale.</div>
       )}
-      {!event && <LineupPicker value={lineup} onChange={setLineup} inizio={inizio} fine={fine} date={data || null} />}
+      {!event && <LineupPicker value={lineup} onChange={setLineup} inizio={inizio} fine={fine} />}
       <label>
         Data
         <input type="date" value={data} onChange={(e) => setData(e.target.value)} required />

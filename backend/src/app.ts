@@ -5,7 +5,6 @@ import { config } from './config.js';
 import { HttpError } from './lib/http.js';
 import { artistsRouter } from './routes/artists.js';
 import { authRouter } from './routes/auth.js';
-import { availabilityRouter } from './routes/availability.js';
 import { eventsRouter } from './routes/events.js';
 import { healthRouter } from './routes/health.js';
 import { icalRouter } from './routes/ical.js';
@@ -41,7 +40,6 @@ export function createApp() {
   app.use(venuesRouter);
   app.use(eventsRouter);
   app.use(performancesRouter);
-  app.use(availabilityRouter);
   app.use(meRouter);
 
   app.use((_req, res) => {

@@ -46,21 +46,20 @@ model User {
 }
 
 model Artist {
-  id             String         @id @default(cuid())
+  id             String        @id @default(cuid())
   nomeArte       String
-  tipo           ArtistType     @default(DJ)
+  tipo           ArtistType    @default(DJ)
   email          String?
   telefono       String?
   genereMusicale String?
   note           String?
-  attivo         Boolean        @default(true)
-  icalToken      String         @unique @default(cuid())
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  attivo         Boolean       @default(true)
+  icalToken      String        @unique @default(cuid())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   user           User?
   bandProfile    BandProfile?
   performances   Performance[]
-  availabilities Availability[]
 
   @@index([tipo, attivo])
 }
@@ -126,15 +125,4 @@ model Performance {
   @@index([artistId, inizio])
   @@index([venueId, inizio])
   @@index([eventId])
-}
-
-model Availability {
-  id          String   @id @default(cuid())
-  artistId    String
-  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
-  data        DateTime @db.Date
-  disponibile Boolean
-  note        String?
-
-  @@unique([artistId, data])
 }

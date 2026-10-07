@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { EventInput, EventSourceFuncArg } from '@fullcalendar/core';
 import { useAuth } from '../auth/AuthContext';
 import { IcalLink } from '../components/IcalLink';
+import { NightCalendar } from '../components/NightCalendar';
 import { PerformanceStatusBadge } from '../components/StatusBadge';
-import { AvailabilityCalendar } from './MyAvailabilityPage';
-import { api } from '../lib/api';
+import { api, errorMessage } from '../lib/api';
+import { performanceStatusColor } from '../lib/labels';
 import { formatDateOnly, formatRange } from '../lib/time';
 import type { Artist, Performance } from '../lib/types';
 import { useAsync } from '../lib/useAsync';
@@ -61,7 +63,7 @@ export function MyDatesPage() {
 
       {data && tab === 'calendario' && (
         <>
-          <AvailabilityCalendar />
+          <MyCalendar />
           <MyIcalCard />
         </>
       )}
@@ -96,6 +98,45 @@ function SlotList({ slots, emptyText }: { slots: Performance[]; emptyText: strin
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Calendario personale dell'artista con le sue date confermate. */
+function MyCalendar() {
+  const [error, setError] = useState<string | null>(null);
+  const loadEvents = useCallback(async (info: EventSourceFuncArg): Promise<EventInput[]> => {
+    try {
+      const r = await api.get<{ performances: Performance[] }>('/performances', { from: info.startStr, to: info.endStr });
+      setError(null);
+      return r.performances
+        .filter((p) => p.stato === 'CONFERMATO')
+        .map((p) => ({
+          id: p.id,
+          title: p.venue.nome,
+          start: p.inizio,
+          end: p.fine,
+          backgroundColor: performanceStatusColor[p.stato].bg,
+          borderColor: performanceStatusColor[p.stato].bg,
+          textColor: performanceStatusColor[p.stato].fg,
+        }));
+    } catch (err) {
+      setError(errorMessage(err));
+      return [];
+    }
+  }, []);
+  const eventSources = useMemo(() => [{ events: loadEvents }], [loadEvents]);
+
+  return (
+    <>
+      {error && <div className="alert alert-error">{error}</div>}
+      <div className="card calendar-card">
+        <NightCalendar
+          eventSources={eventSources}
+          headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }}
+          initialView="dayGridMonth"
+        />
+      </div>
+    </>
   );
 }
 

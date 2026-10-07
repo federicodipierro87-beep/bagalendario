@@ -1,5 +1,4 @@
 import type { PerformanceStatus, Prisma } from '@prisma/client';
-import { DateTime } from 'luxon';
 import { conflict } from './http.js';
 
 /** Stati che "occupano" artista e locale: solo questi generano conflitti. */
@@ -61,25 +60,4 @@ export async function assertNoConflicts(tx: Prisma.TransactionClient, slot: Slot
         : 'Il locale ha già uno slot sovrapposto in questo orario';
 
   throw conflict(message, { conflitti });
-}
-
-/**
- * Blocca l'assegnazione se l'artista ha segnato (o lo staff ha segnato) un'indisponibilità
- * nel giorno della serata (`eventDate` è la data di calendario della serata, colonna @db.Date).
- */
-export async function assertArtistAvailable(
-  tx: Prisma.TransactionClient,
-  artist: { id: string; nomeArte: string },
-  eventDate: Date,
-) {
-  const availability = await tx.availability.findUnique({
-    where: { artistId_data: { artistId: artist.id, data: eventDate } },
-  });
-  if (availability && !availability.disponibile) {
-    const giorno = DateTime.fromJSDate(eventDate, { zone: 'UTC' }).setLocale('it').toFormat('cccc d LLLL yyyy');
-    const motivo = availability.note ? ` (${availability.note})` : '';
-    throw conflict(`${artist.nomeArte} non è disponibile ${giorno}${motivo}`, {
-      indisponibilita: { artistId: artist.id, data: eventDate, note: availability.note },
-    });
-  }
 }

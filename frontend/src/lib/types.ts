@@ -77,12 +77,3 @@ export interface Performance {
   venue: VenueSummary;
   event: Pick<EventItem, 'id' | 'titolo' | 'stato' | 'inizio' | 'fine' | 'data' | 'venueId'>;
 }
-
-export interface Availability {
-  id: string;
-  artistId: string;
-  data: string;
-  disponibile: boolean;
-  note: string | null;
-  artist?: ArtistSummary;
-}

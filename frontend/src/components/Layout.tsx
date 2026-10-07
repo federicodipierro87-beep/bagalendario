@@ -15,10 +15,8 @@ const NAV: NavItem[] = [
   { to: '/serate', label: 'Serate', roles: ['ADMIN', 'STAFF'] },
   { to: '/artisti', label: 'Artisti', roles: ['ADMIN', 'STAFF'] },
   { to: '/locali', label: 'Locali', roles: ['ADMIN', 'STAFF'] },
-  { to: '/disponibilita', label: 'Disponibilità', roles: ['ADMIN', 'STAFF'] },
   { to: '/utenti', label: 'Utenti', roles: ['ADMIN'] },
   { to: '/le-mie-date', label: 'Le mie date', roles: ['ARTIST'] },
-  { to: '/la-mia-disponibilita', label: 'La mia disponibilità', roles: ['ARTIST'] },
 ];
 
 export function Layout() {

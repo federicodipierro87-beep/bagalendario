@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ArtistType, PerformanceStatus, type Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { assertArtistAvailable, assertNoConflicts, isActiveStatus } from '../lib/conflicts.js';
+import { assertNoConflicts, isActiveStatus } from '../lib/conflicts.js';
 import { badRequest, forbidden, notFound, param, parseBody, parseQuery } from '../lib/http.js';
 import { prisma } from '../lib/prisma.js';
 import { MAX_DURATION_MS, zInstant } from '../lib/time.js';
@@ -102,7 +102,6 @@ export async function validateSlot(tx: Prisma.TransactionClient, slot: Performan
   if (isActiveStatus(slot.stato ?? 'CONFERMATO')) {
     if (!artist.attivo) throw badRequest(`${artist.nomeArte} è disattivato`);
     if (event.stato === 'ANNULLATO') throw badRequest('La serata è annullata');
-    await assertArtistAvailable(tx, artist, event.data);
     await assertNoConflicts(tx, { id, ...slot, venueId: event.venueId });
   }
   return event.venueId;

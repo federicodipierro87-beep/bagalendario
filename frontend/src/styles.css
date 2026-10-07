@@ -629,7 +629,7 @@ label.checkbox {
   }
 }
 
-/* ---------- Area artista / disponibilità ---------- */
+/* ---------- Area artista ---------- */
 .legend {
   display: flex;
   gap: 1rem;
@@ -648,36 +648,6 @@ label.checkbox {
 }
 .slot-list li {
   align-items: flex-start;
-}
-.availability-grid th,
-.availability-grid td {
-  padding: 0.35rem 0.3rem;
-  text-align: center;
-  font-size: 0.8rem;
-  min-width: 1.9rem;
-}
-.availability-grid th.weekend {
-  color: var(--primary);
-}
-.availability-grid .sticky-col {
-  position: sticky;
-  left: 0;
-  background: var(--surface);
-  text-align: left;
-  z-index: 1;
-  min-width: 10rem;
-}
-.av-cell {
-  background: var(--surface-2);
-  font-weight: 700;
-}
-.av-cell.yes {
-  background: color-mix(in srgb, #16a34a 25%, transparent);
-  color: #15803d;
-}
-.av-cell.no {
-  background: color-mix(in srgb, #dc2626 22%, transparent);
-  color: #b91c1c;
 }
 .month-label {
   text-transform: capitalize;
@@ -962,50 +932,4 @@ a.brand {
   .fc .fc-daygrid-day-number {
     padding: 2px 3px;
   }
-}
-
-/* ---------- Indisponibilità DJ ---------- */
-.mode-flag {
-  padding: 0.6rem 0.75rem;
-  margin-bottom: 0.9rem;
-  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--danger) 6%, transparent);
-  font-weight: 600;
-}
-.chips-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-.chip-unavailable {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: var(--danger);
-  color: #fff;
-  border-color: transparent;
-  cursor: default;
-}
-.chip-unavailable button {
-  background: none;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-  font-size: 0.8rem;
-}
-.fc .fc-indisponibile {
-  font-weight: 600;
-}
-.badge-danger {
-  background: var(--danger);
-  color: #fff;
-  border-color: transparent;
-  margin-left: 0.4rem;
-}
-.alert-warning {
-  background: color-mix(in srgb, #f59e0b 14%, transparent);
-  color: color-mix(in srgb, #b45309 85%, var(--text));
-  border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent);
 }

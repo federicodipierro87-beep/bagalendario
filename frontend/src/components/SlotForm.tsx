@@ -3,9 +3,8 @@ import { DateTime } from 'luxon';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { artistTypeLabel, PERFORMANCE_STATUSES, performanceStatusLabel } from '../lib/labels';
 import { formatDateOnly, formatRange, isoToRomeParts, TIMEZONE } from '../lib/time';
-import type { Artist, Availability, EventItem, Performance, PerformanceStatus, VenueSummary } from '../lib/types';
+import type { Artist, EventItem, Performance, PerformanceStatus, VenueSummary } from '../lib/types';
 import { useAsync } from '../lib/useAsync';
-import { useUnavailableOn } from '../lib/useUnavailable';
 
 interface Props {
   event: Pick<EventItem, 'id' | 'titolo' | 'inizio' | 'fine' | 'data'>;
@@ -53,19 +52,6 @@ export function SlotForm({ event, venue, slot, onSaved, onCancel }: Props) {
 
   const inizio = oraInizio ? nextOccurrence(event.inizio, oraInizio) : null;
   const fine = inizio && oraFine ? nextOccurrence(inizio, oraFine, true) : null;
-
-  // Disponibilità dichiarata dall'artista per la data della serata.
-  const eventDay = event.data.slice(0, 10);
-  const unavailable = useUnavailableOn(eventDay);
-  const availability = useAsync(
-    () =>
-      artistId
-        ? api
-            .get<{ availabilities: Availability[] }>('/availability', { artistId, from: eventDay, to: eventDay })
-            .then((r) => r.availabilities[0] ?? null)
-        : Promise.resolve(null),
-    `${artistId}|${eventDay}`,
-  );
 
   const artists = useMemo(() => {
     const list = lists.data?.artists ?? [];
@@ -119,20 +105,13 @@ export function SlotForm({ event, venue, slot, onSaved, onCancel }: Props) {
           <select value={artistId} onChange={(e) => setArtistId(e.target.value)} required>
             <option value="">— Seleziona —</option>
             {artists.map((a) => (
-              <option key={a.id} value={a.id} disabled={unavailable.has(a.id) && a.id !== slot?.artistId}>
+              <option key={a.id} value={a.id}>
                 {a.nomeArte} ({artistTypeLabel[a.tipo]})
-                {unavailable.has(a.id) ? ' — non disponibile' : ''}
               </option>
             ))}
           </select>
         </label>
       </div>
-      {availability.data && (
-        <div className={`alert ${availability.data.disponibile ? 'alert-ok' : 'alert-error'}`}>
-          {availability.data.disponibile ? 'Disponibile' : 'Non disponibile'} in questa data secondo l'artista
-          {availability.data.note ? ` — ${availability.data.note}` : ''}
-        </div>
-      )}
       <div className="form-row-2">
         <label>
           Inizio

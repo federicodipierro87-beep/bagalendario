@@ -1,12 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { EventInput, EventSourceFuncArg } from '@fullcalendar/core';
-import { useAuth } from '../auth/AuthContext';
 import { EventForm } from '../components/EventForm';
 import { Modal } from '../components/Modal';
 import { NightCalendar } from '../components/NightCalendar';
 import { SlotForm } from '../components/SlotForm';
-import { UnavailabilityForm } from '../components/UnavailabilityForm';
 import { api, errorMessage } from '../lib/api';
 import {
   ARTIST_TYPES,
@@ -17,11 +15,8 @@ import {
   performanceStatusColor,
   performanceStatusLabel,
 } from '../lib/labels';
-import { formatDateOnly } from '../lib/time';
-import type { Artist, ArtistType, Availability, EventItem, Performance, PerformanceStatus, Venue } from '../lib/types';
+import type { Artist, ArtistType, EventItem, Performance, PerformanceStatus, Venue } from '../lib/types';
 import { useAsync } from '../lib/useAsync';
-
-const UNAVAILABLE_COLOR = '#dc2626';
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -29,8 +24,6 @@ function toggle<T>(list: T[], value: T): T[] {
 
 export function CalendarPage() {
   const navigate = useNavigate();
-  // Le indisponibilità degli artisti nel calendario sono visibili solo all'amministratore.
-  const canSeeUnavailable = useAuth().hasRole('ADMIN');
   const lists = useAsync(() =>
     Promise.all([api.get<{ venues: Venue[] }>('/venues'), api.get<{ artists: Artist[] }>('/artists')]).then(
       ([v, a]) => ({ venues: v.venues, artists: a.artists }),
@@ -48,9 +41,6 @@ export function CalendarPage() {
 
   const [slotModal, setSlotModal] = useState<Performance | null>(null);
   const [newEventDate, setNewEventDate] = useState<string | null>(null);
-  // Flag del modale aperto dal calendario: serata oppure indisponibilità DJ.
-  const [unavailableMode, setUnavailableMode] = useState(false);
-  const [showUnavailable, setShowUnavailable] = useState(true);
   const [version, setVersion] = useState(0);
   // Il nome del locale serve nel titolo solo se ce n'è più di uno.
   const multiVenue = (lists.data?.venues.length ?? 0) > 1;
@@ -58,7 +48,7 @@ export function CalendarPage() {
   const loadEvents = useCallback(
     async (info: EventSourceFuncArg): Promise<EventInput[]> => {
       try {
-        const [perf, evs, unavailable] = await Promise.all([
+        const [perf, evs] = await Promise.all([
           api.get<{ performances: Performance[] }>('/performances', {
             from: info.startStr,
             to: info.endStr,
@@ -72,15 +62,6 @@ export function CalendarPage() {
                 .get<{ events: EventItem[] }>('/events', { from: info.startStr, to: info.endStr })
                 .then((r) => ({ events: venueIds.length ? r.events.filter((e) => venueIds.includes(e.venueId)) : r.events }))
             : Promise.resolve({ events: [] as EventItem[] }),
-          canSeeUnavailable && showUnavailable
-            ? api
-                .get<{ availabilities: Availability[] }>('/availability', {
-                  from: info.startStr.slice(0, 10),
-                  to: info.endStr.slice(0, 10),
-                  artistId: artistId || undefined,
-                })
-                .then((r) => r.availabilities.filter((a) => !a.disponibile && (!tipi.length || tipi.includes(a.artist!.tipo))))
-            : Promise.resolve([] as Availability[]),
         ]);
         setError(null);
         // Le serate con DJ sono già rappresentate dai loro slot: mostriamo a parte solo quelle ancora senza DJ.
@@ -110,19 +91,7 @@ export function CalendarPage() {
             extendedProps: { kind: 'slot', performance: p },
           };
         });
-        // Indisponibilità: nome del DJ in rosso sul giorno.
-        const indisponibili: EventInput[] = unavailable.map((a) => ({
-          id: `unavailable-${a.id}`,
-          title: a.artist!.nomeArte,
-          start: a.data.slice(0, 10),
-          allDay: true,
-          backgroundColor: UNAVAILABLE_COLOR,
-          borderColor: UNAVAILABLE_COLOR,
-          textColor: '#ffffff',
-          classNames: ['fc-indisponibile'],
-          extendedProps: { kind: 'unavailable', availability: a },
-        }));
-        return [...indisponibili, ...serate, ...slots];
+        return [...serate, ...slots];
       } catch (err) {
         setError(errorMessage(err));
         return [];
@@ -130,25 +99,11 @@ export function CalendarPage() {
     },
     // version forza il ricaricamento dopo un salvataggio
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [venueIds, artistId, stati, tipi, showEvents, showUnavailable, canSeeUnavailable, multiVenue, version],
+    [venueIds, artistId, stati, tipi, showEvents, multiVenue, version],
   );
 
   const eventSources = useMemo(() => [{ events: loadEvents }], [loadEvents]);
   const refresh = () => setVersion((v) => v + 1);
-
-  async function removeUnavailability(a: Availability) {
-    const nome = a.artist?.nomeArte ?? 'il DJ';
-    const motivo = a.note ? ` (${a.note})` : '';
-    if (!confirm(`${nome} non è disponibile ${formatDateOnly(a.data)}${motivo}.
-
-Rimuovere l'indisponibilità?`)) return;
-    try {
-      await api.delete(`/availability/${a.artistId}/${a.data.slice(0, 10)}`);
-      refresh();
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }
 
   return (
     <div className="page">
@@ -156,10 +111,7 @@ Rimuovere l'indisponibilità?`)) return;
         <h1>Calendario</h1>
         <button
           className="btn btn-primary"
-          onClick={() => {
-            setUnavailableMode(false);
-            setNewEventDate('');
-          }}
+          onClick={() => setNewEventDate('')}
         >
           + Nuova serata
         </button>
@@ -218,12 +170,6 @@ Rimuovere l'indisponibilità?`)) return;
             <input type="checkbox" checked={showEvents} onChange={(e) => setShowEvents(e.target.checked)} />
             Mostra serate senza DJ
           </label>
-          {canSeeUnavailable && (
-            <label className="checkbox">
-              <input type="checkbox" checked={showUnavailable} onChange={(e) => setShowUnavailable(e.target.checked)} />
-              Mostra indisponibilità DJ
-            </label>
-          )}
         </div>
       </div>
 
@@ -232,20 +178,15 @@ Rimuovere l'indisponibilità?`)) return;
       <div className="card calendar-card">
         <NightCalendar
           eventSources={eventSources}
-          dateClick={(info) => {
-            setUnavailableMode(false);
-            setNewEventDate(info.dateStr.slice(0, 10));
-          }}
+          dateClick={(info) => setNewEventDate(info.dateStr.slice(0, 10))}
           eventClick={(info) => {
             const props = info.event.extendedProps as {
               kind: string;
               eventId?: string;
               performance?: Performance;
-              availability?: Availability;
             };
             if (props.kind === 'event' && props.eventId) navigate(`/serate/${props.eventId}`);
             if (props.kind === 'slot' && props.performance) setSlotModal(props.performance);
-            if (props.kind === 'unavailable' && props.availability) void removeUnavailability(props.availability);
           }}
         />
       </div>
@@ -269,29 +210,12 @@ Rimuovere l'indisponibilità?`)) return;
         </Modal>
       )}
       {newEventDate !== null && (
-        <Modal title={unavailableMode ? 'Indisponibilità DJ' : 'Nuova serata'} onClose={() => setNewEventDate(null)}>
-          {canSeeUnavailable && (
-            <label className="checkbox mode-flag">
-              <input type="checkbox" checked={unavailableMode} onChange={(e) => setUnavailableMode(e.target.checked)} />
-              Indisponibilità (segna uno o più DJ come non disponibili)
-            </label>
-          )}
-          {canSeeUnavailable && unavailableMode ? (
-            <UnavailabilityForm
-              defaultDate={newEventDate || undefined}
-              onCancel={() => setNewEventDate(null)}
-              onSaved={() => {
-                setNewEventDate(null);
-                refresh();
-              }}
-            />
-          ) : (
-            <EventForm
-              defaultDate={newEventDate || undefined}
-              onCancel={() => setNewEventDate(null)}
-              onSaved={(ev) => navigate(`/serate/${ev.id}`)}
-            />
-          )}
+        <Modal title="Nuova serata" onClose={() => setNewEventDate(null)}>
+          <EventForm
+            defaultDate={newEventDate || undefined}
+            onCancel={() => setNewEventDate(null)}
+            onSaved={(ev) => navigate(`/serate/${ev.id}`)}
+          />
         </Modal>
       )}
     </div>
