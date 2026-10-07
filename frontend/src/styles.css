@@ -579,6 +579,57 @@ label.checkbox {
   border-color: transparent;
 }
 
+/* ---------- Categorie e tipi di appuntamento ---------- */
+.category-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.category-chip i {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+.category-chip.on i {
+  box-shadow: 0 0 0 1.5px currentColor;
+}
+.category-chip:not(.on) {
+  color: var(--muted);
+}
+.type-picker {
+  display: grid;
+  gap: 0.5rem;
+}
+.type-picker p {
+  margin: 0 0 0.25rem;
+}
+.type-option {
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-left: 8px solid;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.type-option:hover {
+  background: var(--surface-2);
+}
+.change-type {
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.85rem;
+}
+
 /* ---------- FullCalendar ---------- */
 .calendar-card {
   padding: 0.75rem;
@@ -618,6 +669,10 @@ label.checkbox {
 .fc .fc-serata .fc-event-title,
 .fc .fc-serata .fc-event-time {
   color: var(--text);
+}
+.fc .fc-slot-inattivo {
+  opacity: 0.55;
+  text-decoration: line-through;
 }
 .fc-daygrid-event.fc-serata .fc-daygrid-event-dot {
   display: none;

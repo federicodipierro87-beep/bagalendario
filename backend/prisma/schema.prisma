@@ -27,6 +27,13 @@ enum EventStatus {
   ANNULLATO
 }
 
+// Appuntamenti diversi dalle serate (le serate restano nel modello Event).
+enum AppointmentType {
+  MATRIMONIO
+  PERSONALE
+  MEDICO
+}
+
 enum PerformanceStatus {
   CONFERMATO
   RIFIUTATO
@@ -125,4 +132,28 @@ model Performance {
   @@index([artistId, inizio])
   @@index([venueId, inizio])
   @@index([eventId])
+}
+
+// Appuntamento del calendario diverso da una serata: matrimonio, impegno personale o medico.
+// I campi compilati dipendono dal tipo; quelli che non gli appartengono sono sempre null.
+model Appointment {
+  id            String          @id @default(cuid())
+  tipo          AppointmentType
+  // Matrimonio: nomi degli sposi; personale: descrizione; medico: tipo di visita.
+  titolo        String
+  inizio        DateTime
+  // Per gli appuntamenti di tutto il giorno: mezzanotte (Europe/Rome) del giorno dopo l'ultimo giorno.
+  fine          DateTime
+  tuttoIlGiorno Boolean         @default(false)
+  // Matrimonio: location; personale: luogo; medico: struttura o indirizzo.
+  luogo         String?
+  medico        String? // solo MEDICO
+  contatto      String? // solo MATRIMONIO: referente / telefono
+  compenso      Decimal?        @db.Decimal(10, 2) // solo MATRIMONIO
+  note          String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([inizio])
+  @@index([tipo, inizio])
 }

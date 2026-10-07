@@ -4,6 +4,7 @@ export type Role = 'ADMIN' | 'STAFF' | 'ARTIST';
 export type ArtistType = 'DJ' | 'BAND';
 export type EventStatus = 'BOZZA' | 'PUBBLICATO' | 'ANNULLATO';
 export type PerformanceStatus = 'CONFERMATO' | 'RIFIUTATO' | 'ANNULLATO';
+export type AppointmentType = 'MATRIMONIO' | 'PERSONALE' | 'MEDICO';
 
 export interface ArtistSummary {
   id: string;
@@ -76,4 +77,20 @@ export interface Performance {
   artist: ArtistSummary & { genereMusicale: string | null };
   venue: VenueSummary;
   event: Pick<EventItem, 'id' | 'titolo' | 'stato' | 'inizio' | 'fine' | 'data' | 'venueId'>;
+}
+
+/** Appuntamento diverso da una serata. I campi non pertinenti al tipo sono null. */
+export interface Appointment {
+  id: string;
+  tipo: AppointmentType;
+  titolo: string;
+  inizio: string;
+  /** Per gli appuntamenti di tutto il giorno: mezzanotte del giorno dopo l'ultimo giorno. */
+  fine: string;
+  tuttoIlGiorno: boolean;
+  luogo: string | null;
+  medico: string | null;
+  contatto: string | null;
+  compenso: string | null;
+  note: string | null;
 }

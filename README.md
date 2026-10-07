@@ -3,8 +3,8 @@
 - App: https://bagalendario.netlify.app
 - API: https://bagalendario-production.up.railway.app (health: `/health`)
 
-Calendario condiviso per gestire le serate della discoteca: artisti (DJ oggi, band domani),
-locali, serate, slot e feed iCal.
+Calendario condiviso per le serate (artisti, locali, slot, feed iCal) e per gli altri appuntamenti:
+matrimoni, impegni personali e impegni medici.
 
 ## Funzionalità
 
@@ -12,6 +12,8 @@ locali, serate, slot e feed iCal.
 - Anagrafica artisti (DJ e BAND tramite il campo `tipo`), locali, serate e slot
 - Il locale si sceglie quando si registra la serata; in creazione si possono selezionare i DJ (slot divisi equamente)
 - Calendario mese / settimana / lista in Europe/Rome, filtri per stato, tipo, locale e artista
+- Nuovo appuntamento: si sceglie prima il tipo (serata, matrimonio, impegno personale, impegno medico),
+  poi compaiono i campi di quel tipo. Colori: serate blu, matrimoni gialli, personali grigi, medici rossi
 - Controllo conflitti: stesso artista o stesso locale non possono avere slot attivi sovrapposti
   (controllo applicativo con dettaglio; per l'artista anche exclusion constraint PostgreSQL)
 - Area artista: le proprie date (già confermate all'inserimento) in lista e in calendario
@@ -23,6 +25,7 @@ locali, serate, slot e feed iCal.
 |---|---|---|
 | POST | `/auth/login`, GET `/auth/me`, POST `/auth/change-password` | tutti |
 | CRUD | `/artists`, `/events`, `/venues` (GET anche ARTIST), `/performances` (GET anche ARTIST, solo propri) | ADMIN, STAFF |
+| CRUD | `/appointments` (modifica con PUT) | ADMIN, STAFF |
 | CRUD | `/users` | ADMIN |
 | GET | `/me/artist`, POST `/me/ical-token` | ARTIST |
 | GET | `/ical/:token.ics` | pubblico con token |

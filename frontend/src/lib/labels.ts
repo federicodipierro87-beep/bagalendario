@@ -1,6 +1,6 @@
 // Etichette e colori per i valori enumerati. Nessuna logica specifica per DJ o BAND:
 // il tipo di artista è sempre un dato da mostrare o filtrare.
-import type { ArtistType, EventStatus, PerformanceStatus, Role } from './types';
+import type { AppointmentType, ArtistType, EventStatus, PerformanceStatus, Role } from './types';
 
 export const ARTIST_TYPES: ArtistType[] = ['DJ', 'BAND'];
 export const artistTypeLabel: Record<ArtistType, string> = { DJ: 'DJ', BAND: 'Band' };
@@ -30,10 +30,34 @@ export const performanceStatusColor: Record<PerformanceStatus, { bg: string; fg:
   ANNULLATO: { bg: '#6b7280', fg: '#ffffff' },
 };
 
-/** Colori per stato della serata: nel calendario colorano anche gli slot attivi della serata. */
+/** Categorie del calendario: le serate più i tipi di appuntamento. */
+export type CalendarCategory = 'SERATA' | AppointmentType;
+export const APPOINTMENT_TYPES: AppointmentType[] = ['MATRIMONIO', 'PERSONALE', 'MEDICO'];
+export const CALENDAR_CATEGORIES: CalendarCategory[] = ['SERATA', ...APPOINTMENT_TYPES];
+export const categoryLabel: Record<CalendarCategory, string> = {
+  SERATA: 'Serata',
+  MATRIMONIO: 'Matrimonio',
+  PERSONALE: 'Impegno personale',
+  MEDICO: 'Impegno medico',
+};
+export const categoryPluralLabel: Record<CalendarCategory, string> = {
+  SERATA: 'Serate',
+  MATRIMONIO: 'Matrimoni',
+  PERSONALE: 'Personali',
+  MEDICO: 'Medici',
+};
+/** Colore di ogni categoria nel calendario: serate blu, matrimoni gialli, personali grigi, medici rossi. */
+export const categoryColor: Record<CalendarCategory, { bg: string; fg: string }> = {
+  SERATA: { bg: '#2563eb', fg: '#ffffff' },
+  MATRIMONIO: { bg: '#facc15', fg: '#1f1300' },
+  PERSONALE: { bg: '#6b7280', fg: '#ffffff' },
+  MEDICO: { bg: '#dc2626', fg: '#ffffff' },
+};
+
+/** Colori per stato della serata: nel calendario colorano anche gli slot attivi (blu, azzurro se bozza). */
 export const eventStatusColor: Record<EventStatus, { bg: string; fg: string }> = {
-  BOZZA: { bg: '#f59e0b', fg: '#1f1300' },
-  PUBBLICATO: { bg: '#16a34a', fg: '#ffffff' },
+  BOZZA: { bg: '#93c5fd', fg: '#0b1f44' },
+  PUBBLICATO: categoryColor.SERATA,
   ANNULLATO: { bg: '#6b7280', fg: '#ffffff' },
 };
 

@@ -3,6 +3,7 @@ import express, { type ErrorRequestHandler } from 'express';
 import { Prisma } from '@prisma/client';
 import { config } from './config.js';
 import { HttpError } from './lib/http.js';
+import { appointmentsRouter } from './routes/appointments.js';
 import { artistsRouter } from './routes/artists.js';
 import { authRouter } from './routes/auth.js';
 import { eventsRouter } from './routes/events.js';
@@ -40,6 +41,7 @@ export function createApp() {
   app.use(venuesRouter);
   app.use(eventsRouter);
   app.use(performancesRouter);
+  app.use(appointmentsRouter);
   app.use(meRouter);
 
   app.use((_req, res) => {

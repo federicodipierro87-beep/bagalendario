@@ -1,26 +1,41 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { EventInput, EventSourceFuncArg } from '@fullcalendar/core';
+import { AppointmentForm } from '../components/AppointmentForm';
 import { EventForm } from '../components/EventForm';
 import { Modal } from '../components/Modal';
 import { NightCalendar } from '../components/NightCalendar';
 import { SlotForm } from '../components/SlotForm';
 import { api, errorMessage } from '../lib/api';
 import {
+  APPOINTMENT_TYPES,
   ARTIST_TYPES,
   artistTypeLabel,
+  CALENDAR_CATEGORIES,
+  categoryColor,
+  categoryLabel,
+  categoryPluralLabel,
   eventName,
   eventStatusColor,
   PERFORMANCE_STATUSES,
   performanceStatusColor,
   performanceStatusLabel,
+  type CalendarCategory,
 } from '../lib/labels';
-import type { Artist, ArtistType, EventItem, Performance, PerformanceStatus, Venue } from '../lib/types';
+import { isoToRomeParts } from '../lib/time';
+import type { Appointment, Artist, ArtistType, EventItem, Performance, PerformanceStatus, Venue } from '../lib/types';
 import { useAsync } from '../lib/useAsync';
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
+
+const newTitle: Record<CalendarCategory, string> = {
+  SERATA: 'Nuova serata',
+  MATRIMONIO: 'Nuovo matrimonio',
+  PERSONALE: 'Nuovo impegno personale',
+  MEDICO: 'Nuovo impegno medico',
+};
 
 export function CalendarPage() {
   const navigate = useNavigate();
@@ -35,12 +50,16 @@ export function CalendarPage() {
   const [stati, setStati] = useState<PerformanceStatus[]>(['CONFERMATO']);
   const [tipi, setTipi] = useState<ArtistType[]>([]);
   const [showEvents, setShowEvents] = useState(true);
+  // Categorie visibili (serate e tipi di appuntamento): i chip fanno anche da legenda dei colori.
+  const [categorie, setCategorie] = useState<CalendarCategory[]>(CALENDAR_CATEGORIES);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilters = venueIds.length + tipi.length + (artistId ? 1 : 0);
   const [error, setError] = useState<string | null>(null);
 
   const [slotModal, setSlotModal] = useState<Performance | null>(null);
-  const [newEventDate, setNewEventDate] = useState<string | null>(null);
+  const [appointmentModal, setAppointmentModal] = useState<Appointment | null>(null);
+  // Nuovo appuntamento: prima si sceglie il tipo, poi compaiono i campi di quel tipo.
+  const [creating, setCreating] = useState<{ date: string; tipo: CalendarCategory | null } | null>(null);
   const [version, setVersion] = useState(0);
   // Il nome del locale serve nel titolo solo se ce n'è più di uno.
   const multiVenue = (lists.data?.venues.length ?? 0) > 1;
@@ -48,20 +67,31 @@ export function CalendarPage() {
   const loadEvents = useCallback(
     async (info: EventSourceFuncArg): Promise<EventInput[]> => {
       try {
-        const [perf, evs] = await Promise.all([
-          api.get<{ performances: Performance[] }>('/performances', {
-            from: info.startStr,
-            to: info.endStr,
-            venueId: venueIds,
-            artistId: artistId || undefined,
-            stato: stati,
-            tipo: tipi,
-          }),
-          showEvents && !artistId
+        const showSerate = categorie.includes('SERATA');
+        const tipiAppuntamento = APPOINTMENT_TYPES.filter((t) => categorie.includes(t));
+        const [perf, evs, apps] = await Promise.all([
+          showSerate
+            ? api.get<{ performances: Performance[] }>('/performances', {
+                from: info.startStr,
+                to: info.endStr,
+                venueId: venueIds,
+                artistId: artistId || undefined,
+                stato: stati,
+                tipo: tipi,
+              })
+            : Promise.resolve({ performances: [] as Performance[] }),
+          showSerate && showEvents && !artistId
             ? api
                 .get<{ events: EventItem[] }>('/events', { from: info.startStr, to: info.endStr })
                 .then((r) => ({ events: venueIds.length ? r.events.filter((e) => venueIds.includes(e.venueId)) : r.events }))
             : Promise.resolve({ events: [] as EventItem[] }),
+          tipiAppuntamento.length
+            ? api.get<{ appointments: Appointment[] }>('/appointments', {
+                from: info.startStr,
+                to: info.endStr,
+                tipo: tipiAppuntamento,
+              })
+            : Promise.resolve({ appointments: [] as Appointment[] }),
         ]);
         setError(null);
         // Le serate con DJ sono già rappresentate dai loro slot: mostriamo a parte solo quelle ancora senza DJ.
@@ -76,10 +106,11 @@ export function CalendarPage() {
           classNames: ['fc-serata', `fc-serata-${ev.stato.toLowerCase()}`],
           extendedProps: { kind: 'event', eventId: ev.id },
         }));
-        // Gli slot confermati prendono il colore della serata (bozza/pubblicata);
-        // quelli rifiutati o annullati mantengono il colore del proprio stato.
+        // Gli slot confermati prendono il colore della serata (blu, azzurro se bozza);
+        // quelli rifiutati o annullati restano blu ma sbiaditi e barrati.
         const slots: EventInput[] = perf.performances.map((p) => {
-          const color = p.stato === 'CONFERMATO' ? eventStatusColor[p.event.stato] : performanceStatusColor[p.stato];
+          const active = p.stato === 'CONFERMATO';
+          const color = active ? eventStatusColor[p.event.stato] : categoryColor.SERATA;
           return {
             id: p.id,
             title: multiVenue ? `${p.artist.nomeArte} · ${p.venue.nome}` : p.artist.nomeArte,
@@ -88,10 +119,23 @@ export function CalendarPage() {
             backgroundColor: color.bg,
             borderColor: color.bg,
             textColor: color.fg,
+            classNames: active ? [] : ['fc-slot-inattivo'],
             extendedProps: { kind: 'slot', performance: p },
           };
         });
-        return [...serate, ...slots];
+        // Appuntamenti: colore del tipo; quelli di tutto il giorno vanno nella riga in alto.
+        const appuntamenti: EventInput[] = apps.appointments.map((a) => ({
+          id: `appointment-${a.id}`,
+          title: a.titolo,
+          start: a.tuttoIlGiorno ? isoToRomeParts(a.inizio).date : a.inizio,
+          end: a.tuttoIlGiorno ? isoToRomeParts(a.fine).date : a.fine,
+          allDay: a.tuttoIlGiorno,
+          backgroundColor: categoryColor[a.tipo].bg,
+          borderColor: categoryColor[a.tipo].bg,
+          textColor: categoryColor[a.tipo].fg,
+          extendedProps: { kind: 'appointment', appointment: a },
+        }));
+        return [...appuntamenti, ...serate, ...slots];
       } catch (err) {
         setError(errorMessage(err));
         return [];
@@ -99,7 +143,7 @@ export function CalendarPage() {
     },
     // version forza il ricaricamento dopo un salvataggio
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [venueIds, artistId, stati, tipi, showEvents, multiVenue, version],
+    [venueIds, artistId, stati, tipi, showEvents, categorie, multiVenue, version],
   );
 
   const eventSources = useMemo(() => [{ events: loadEvents }], [loadEvents]);
@@ -111,10 +155,28 @@ export function CalendarPage() {
         <h1>Calendario</h1>
         <button
           className="btn btn-primary"
-          onClick={() => setNewEventDate('')}
+          onClick={() => setCreating({ date: '', tipo: null })}
         >
-          + Nuova serata
+          + Nuovo appuntamento
         </button>
+      </div>
+
+      <div className="category-bar" role="group" aria-label="Categorie visibili">
+        {CALENDAR_CATEGORIES.map((c) => {
+          const on = categorie.includes(c);
+          return (
+            <button
+              key={c}
+              className={`chip category-chip ${on ? 'on' : ''}`}
+              style={on ? { background: categoryColor[c].bg, color: categoryColor[c].fg } : undefined}
+              aria-pressed={on}
+              onClick={() => setCategorie(toggle(categorie, c))}
+            >
+              <i style={{ background: categoryColor[c].bg }} />
+              {categoryPluralLabel[c]}
+            </button>
+          );
+        })}
       </div>
 
       <button className="btn btn-ghost filters-toggle" onClick={() => setFiltersOpen((o) => !o)} aria-expanded={filtersOpen}>
@@ -122,7 +184,7 @@ export function CalendarPage() {
       </button>
       <div className={`card filters ${filtersOpen ? 'open' : ''}`}>
         <div className="filter-group">
-          <span className="filter-label">Stato slot</span>
+          <span className="filter-label">Serate · stato slot</span>
           {PERFORMANCE_STATUSES.map((s) => (
             <button
               key={s}
@@ -135,7 +197,7 @@ export function CalendarPage() {
           ))}
         </div>
         <div className="filter-group">
-          <span className="filter-label">Tipo</span>
+          <span className="filter-label">Tipo artista</span>
           {ARTIST_TYPES.map((t) => (
             <button key={t} className={`chip ${tipi.includes(t) ? 'on' : ''}`} onClick={() => setTipi(toggle(tipi, t))}>
               {artistTypeLabel[t]}
@@ -178,15 +240,17 @@ export function CalendarPage() {
       <div className="card calendar-card">
         <NightCalendar
           eventSources={eventSources}
-          dateClick={(info) => setNewEventDate(info.dateStr.slice(0, 10))}
+          dateClick={(info) => setCreating({ date: info.dateStr.slice(0, 10), tipo: null })}
           eventClick={(info) => {
             const props = info.event.extendedProps as {
               kind: string;
               eventId?: string;
               performance?: Performance;
+              appointment?: Appointment;
             };
             if (props.kind === 'event' && props.eventId) navigate(`/serate/${props.eventId}`);
             if (props.kind === 'slot' && props.performance) setSlotModal(props.performance);
+            if (props.kind === 'appointment' && props.appointment) setAppointmentModal(props.appointment);
           }}
         />
       </div>
@@ -209,13 +273,61 @@ export function CalendarPage() {
           </div>
         </Modal>
       )}
-      {newEventDate !== null && (
-        <Modal title="Nuova serata" onClose={() => setNewEventDate(null)}>
-          <EventForm
-            defaultDate={newEventDate || undefined}
-            onCancel={() => setNewEventDate(null)}
-            onSaved={(ev) => navigate(`/serate/${ev.id}`)}
+      {appointmentModal && (
+        <Modal title={categoryLabel[appointmentModal.tipo]} onClose={() => setAppointmentModal(null)}>
+          <AppointmentForm
+            tipo={appointmentModal.tipo}
+            appointment={appointmentModal}
+            onCancel={() => setAppointmentModal(null)}
+            onSaved={() => {
+              setAppointmentModal(null);
+              refresh();
+            }}
           />
+        </Modal>
+      )}
+      {creating && (
+        <Modal title={creating.tipo ? newTitle[creating.tipo] : 'Nuovo appuntamento'} onClose={() => setCreating(null)}>
+          {!creating.tipo ? (
+            <div className="type-picker">
+              <p className="muted">Che tipo di appuntamento vuoi aggiungere?</p>
+              {CALENDAR_CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className="type-option"
+                  style={{ borderLeftColor: categoryColor[c].bg }}
+                  onClick={() => setCreating({ ...creating, tipo: c })}
+                >
+                  {categoryLabel[c]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <button type="button" className="btn btn-ghost change-type" onClick={() => setCreating({ ...creating, tipo: null })}>
+                ← Cambia tipo
+              </button>
+              {creating.tipo === 'SERATA' ? (
+                <EventForm
+                  defaultDate={creating.date || undefined}
+                  onCancel={() => setCreating(null)}
+                  onSaved={(ev) => navigate(`/serate/${ev.id}`)}
+                />
+              ) : (
+                <AppointmentForm
+                  key={creating.tipo}
+                  tipo={creating.tipo}
+                  defaultDate={creating.date || undefined}
+                  onCancel={() => setCreating(null)}
+                  onSaved={() => {
+                    setCreating(null);
+                    refresh();
+                  }}
+                />
+              )}
+            </>
+          )}
         </Modal>
       )}
     </div>

@@ -13,10 +13,11 @@ import { TIMEZONE } from '../lib/time';
 const isNarrow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches;
 
 /**
- * FullCalendar configurato per un locale notturno:
+ * FullCalendar per serate e impegni quotidiani:
  * - fuso Europe/Rome indipendente dal browser (plugin luxon);
- * - vista settimana dalle 18:00 alle 06:00 del giorno dopo, così una serata 23:00–05:00
- *   resta in un'unica colonna;
+ * - vista settimana dalle 06:00 alle 06:00 del giorno dopo, così una serata 23:00–05:00
+ *   resta in un'unica colonna e gli impegni di giorno restano visibili;
+ * - riga "tutto il giorno" per gli appuntamenti senza orario;
  * - nella vista mese gli eventi che finiscono prima delle 09:00 non "sconfinano" nel giorno dopo;
  * - si apre sempre in vista mese; su mobile gli eventi mostrano solo il nome del DJ.
  */
@@ -38,11 +39,11 @@ export const NightCalendar = forwardRef<FullCalendar, CalendarOptions>(function 
       views={{
         listMonth: { buttonText: 'lista' },
       }}
-      slotMinTime="18:00:00"
+      slotMinTime="06:00:00"
       slotMaxTime="30:00:00"
-      scrollTime="21:00:00"
+      scrollTime="08:00:00"
       nextDayThreshold="09:00:00"
-      allDaySlot={false}
+      allDaySlot
       nowIndicator
       height="auto"
       eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}

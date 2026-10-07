@@ -5,7 +5,7 @@ import { IcalLink } from '../components/IcalLink';
 import { NightCalendar } from '../components/NightCalendar';
 import { PerformanceStatusBadge } from '../components/StatusBadge';
 import { api, errorMessage } from '../lib/api';
-import { performanceStatusColor } from '../lib/labels';
+import { categoryColor } from '../lib/labels';
 import { formatDateOnly, formatRange } from '../lib/time';
 import type { Artist, Performance } from '../lib/types';
 import { useAsync } from '../lib/useAsync';
@@ -115,9 +115,9 @@ function MyCalendar() {
           title: p.venue.nome,
           start: p.inizio,
           end: p.fine,
-          backgroundColor: performanceStatusColor[p.stato].bg,
-          borderColor: performanceStatusColor[p.stato].bg,
-          textColor: performanceStatusColor[p.stato].fg,
+          backgroundColor: categoryColor.SERATA.bg,
+          borderColor: categoryColor.SERATA.bg,
+          textColor: categoryColor.SERATA.fg,
         }));
     } catch (err) {
       setError(errorMessage(err));

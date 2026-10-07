@@ -15,7 +15,7 @@ export const performanceInclude = {
   event: { select: { id: true, titolo: true, stato: true, inizio: true, fine: true, data: true, venueId: true } },
 } satisfies Prisma.PerformanceInclude;
 
-const compensoSchema = z
+export const compensoSchema = z
   .union([z.number(), z.string().trim().regex(/^\d+([.,]\d{1,2})?$/, 'Compenso non valido')])
   .transform((v) => (typeof v === 'number' ? v.toFixed(2) : v.replace(',', '.')))
   .nullish();
